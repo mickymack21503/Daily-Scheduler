@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>⟨ψ⟩ GATE 2027 Quantum Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#03050f;--surface:#080d1a;--card:#0c1225;--border:#1a2a4a;
+  --blue:#00c8ff;--purple:#8b5cf6;--green:#00ff9d;--amber:#f59e0b;
+  --red:#ff4d6d;--pink:#f472b6;--text:#e2e8f0;--muted:#64748b;--dim:#1e2a3a;
+  --font:'Courier New',monospace;
+  --radius:10px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:clamp(11px,2.5vw,13px);padding:clamp(6px,2vw,14px);min-height:100vh}
+
+/* ── HEADER ── */
+.hdr{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:clamp(10px,3vw,16px);margin-bottom:10px}
+.hdr-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.hdr-title{font-size:clamp(11px,3vw,14px);font-weight:700;letter-spacing:2px;color:var(--blue)}
+.hdr-sub{font-size:clamp(8px,2vw,9px);color:var(--muted);letter-spacing:1.5px;margin-top:3px}
+.hdr-stats{display:flex;gap:clamp(10px,4vw,20px);flex-wrap:wrap}
+.hstat{text-align:center}
+.hstat-val{font-size:clamp(14px,4vw,20px);font-weight:700}
+.hstat-lbl{font-size:clamp(7px,1.8vw,9px);color:var(--muted);letter-spacing:1px}
+
+/* ── SAVE STATUS ── */
+.save-status{font-size:8px;color:var(--muted);letter-spacing:1px;text-align:right;padding:2px 0 4px;transition:color .3s}
+.save-status.saved{color:var(--green)}
+.save-status.saving{color:var(--amber)}
+
+/* ── PHASE STRIP ── */
+.phase-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px}
+@media(max-width:540px){.phase-strip{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:340px){.phase-strip{grid-template-columns:repeat(2,1fr)}}
+.phase{padding:clamp(4px,1.5vw,7px) clamp(2px,1vw,4px);border-radius:6px;text-align:center;border:1px solid var(--border);font-size:clamp(7px,1.8vw,9px)}
+.ph-now{border-color:var(--amber);background:rgba(245,158,11,.08)}
+.ph-prep{border-color:var(--blue);background:rgba(0,200,255,.06)}
+.ph-rev{border-color:var(--purple);background:rgba(139,92,246,.08)}
+.ph-gate{border-color:var(--red);background:rgba(255,77,109,.08)}
+.phase-lbl{font-size:clamp(6px,1.5vw,8px);color:var(--muted);margin-bottom:2px}
+.phase-name{font-size:clamp(8px,2vw,10px);font-weight:700}
+.phase-sub{font-size:clamp(6px,1.5vw,8px);color:var(--muted);margin-top:2px}
+
+/* ── NAV ── */
+.top-nav{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tnav{padding:clamp(5px,1.5vw,7px) clamp(10px,3vw,16px);background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:var(--font);font-size:clamp(8px,2vw,10px);letter-spacing:1.5px;transition:all .2s;white-space:nowrap}
+.tnav:hover{border-color:var(--blue);color:var(--blue)}
+.tnav.active{background:rgba(0,200,255,.1);border-color:var(--blue);color:var(--blue)}
+
+/* ── SECTIONS ── */
+.sec{display:none}.sec.active{display:block}
+
+/* ── SUBJECT TABS ── */
+.sub-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;-webkit-overflow-scrolling:touch}
+.stab{padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:5px;cursor:pointer;font-family:var(--font);font-size:clamp(8px,2vw,9px);letter-spacing:1px;color:var(--muted);transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.stab:hover{border-color:var(--blue)}
+.stab.active{border-color:var(--blue);color:var(--blue);background:rgba(0,200,255,.08)}
+.qball{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+
+/* ── SUBJECT CARD ── */
+.sub-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:clamp(10px,3vw,16px);margin-bottom:10px}
+.sub-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.sub-name{font-size:clamp(12px,3vw,14px);font-weight:700;letter-spacing:1px;color:var(--text)}
+.sub-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.q-indicator{display:flex;align-items:center;gap:6px;font-size:clamp(8px,2vw,10px);padding:4px 10px;border-radius:20px;border:1px solid;white-space:nowrap}
+.q-superposed{color:var(--amber);border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.07)}
+.q-entangled{color:var(--blue);border-color:rgba(0,200,255,.3);background:rgba(0,200,255,.07)}
+.q-collapsed{color:var(--green);border-color:rgba(0,255,157,.3);background:rgba(0,255,157,.07)}
+.q-dot{width:6px;height:6px;border-radius:50%;animation:qpulse 2s infinite;flex-shrink:0}
+.q-superposed .q-dot{background:var(--amber)}
+.q-entangled .q-dot{background:var(--blue)}
+.q-collapsed .q-dot{background:var(--green)}
+@keyframes qpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+
+/* ── PROGRESS BAR ── */
+.sub-prog-wrap{margin-bottom:12px}
+.prog-labels{display:flex;justify-content:space-between;font-size:clamp(8px,2vw,9px);color:var(--muted);margin-bottom:4px;letter-spacing:.5px}
+.prog-bar{height:5px;background:var(--dim);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width .5s}
+
+/* ── PILLARS GRID ── */
+.pillars{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+@media(max-width:700px){.pillars{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:420px){.pillars{grid-template-columns:repeat(2,1fr)}}
+.pillar{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:8px;padding:clamp(6px,2vw,10px)}
+.pillar-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:4px}
+.pillar-name{font-size:clamp(7px,1.8vw,9px);letter-spacing:1px;font-weight:700}
+.pillar-pct{font-size:clamp(9px,2.2vw,11px);font-weight:700}
+.p-prep .pillar-name,.p-prep .pillar-pct{color:var(--blue)}
+.p-revision .pillar-name,.p-revision .pillar-pct{color:var(--purple)}
+.p-workbook .pillar-name,.p-workbook .pillar-pct{color:var(--amber)}
+.p-pyqs .pillar-name,.p-pyqs .pillar-pct{color:var(--pink)}
+.p-test .pillar-name,.p-test .pillar-pct{color:var(--green)}
+
+/* ── TASKS ── */
+.task-row{display:flex;align-items:flex-start;gap:6px;margin-bottom:6px;cursor:pointer;padding:4px 5px;border-radius:5px;transition:background .15s}
+.task-row:hover,.task-row:active{background:rgba(255,255,255,.04)}
+.task-cb{width:16px;height:16px;border:1px solid var(--border);border-radius:3px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .15s;min-width:16px}
+.task-cb.done{background:rgba(0,255,157,.15);border-color:var(--green);color:var(--green)}
+.task-txt{font-size:clamp(9px,2.2vw,11px);color:var(--text);line-height:1.5}
+.task-txt.done{text-decoration:line-through;color:var(--muted)}
+
+/* ── DEADLINE TAG ── */
+.deadline-tag{font-size:clamp(8px,2vw,9px);padding:3px 10px;border-radius:10px;border:1px solid rgba(245,158,11,.3);color:var(--amber);background:rgba(245,158,11,.07);letter-spacing:.5px;white-space:nowrap}
+
+/* ── ALL OVERVIEW ── */
+.ov-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+@media(max-width:480px){.ov-grid{grid-template-columns:repeat(2,1fr)}}
+.ov-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:clamp(8px,2.5vw,12px);text-align:center}
+.ov-val{font-size:clamp(16px,5vw,22px);font-weight:700;margin-bottom:3px}
+.ov-lbl{font-size:clamp(7px,1.8vw,8px);letter-spacing:1px;color:var(--muted)}
+
+.all-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:8px}
+.mini-sub-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:clamp(8px,2.5vw,12px);cursor:pointer;transition:all .2s}
+.mini-sub-card:hover{border-color:var(--blue)}
+.ms-name{font-size:clamp(10px,2.5vw,12px);font-weight:700;margin-bottom:6px;color:var(--text)}
+.mini-pillars{display:flex;gap:4px;margin-bottom:6px}
+.mini-p{flex:1;height:4px;border-radius:2px}
+.mini-prog{font-size:clamp(8px,2vw,9px);color:var(--muted);display:flex;justify-content:space-between}
+
+/* ── MONTHLY ── */
+.month-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;margin-bottom:10px}
+.month-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:clamp(10px,3vw,14px)}
+.month-name{font-size:clamp(9px,2.2vw,11px);font-weight:700;letter-spacing:2px;margin-bottom:6px}
+.month-phase{font-size:clamp(7px,1.8vw,9px);padding:2px 8px;border-radius:10px;margin-bottom:8px;display:inline-block;letter-spacing:.5px}
+.month-subjects{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+.ms-row{display:flex;align-items:center;gap:6px;font-size:clamp(10px,2.5vw,12px)}
+.ms-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.month-focus{font-size:clamp(9px,2.2vw,10px);color:var(--muted);padding-top:8px;border-top:1px solid var(--border);line-height:1.6}
+
+/* ── TOUCH FRIENDLY ── */
+@media(hover:none){
+  .task-row{padding:6px 5px}
+  .task-cb{width:18px;height:18px;min-width:18px}
+  .stab,.tnav{padding:8px 12px}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-inner">
+    <div>
+      <div class="hdr-title">⟨ψ⟩ GATE 2027 — CS/IT MISSION TRACKER</div>
+      <div class="hdr-sub">MADE EASY · QUANTUM COHERENCE EDITION · TARGET: FEB 2027</div>
+    </div>
+    <div class="hdr-stats">
+      <div class="hstat"><div class="hstat-val" id="ov-total" style="color:var(--blue)">0%</div><div class="hstat-lbl">OVERALL</div></div>
+      <div class="hstat"><div class="hstat-val" id="ov-subj" style="color:var(--green)">0/11</div><div class="hstat-lbl">SUBJECTS</div></div>
+      <div class="hstat"><div class="hstat-val" id="ov-days" style="color:var(--amber)">--</div><div class="hstat-lbl">DAYS LEFT</div></div>
+    </div>
+  </div>
+  <div class="save-status" id="save-status">● LOADING...</div>
+</div>
+
+<div class="phase-strip">
+  <div class="phase ph-now"><div class="phase-lbl">NOW</div><div class="phase-name" style="color:var(--amber)">JUN</div><div class="phase-sub">TOC</div></div>
+  <div class="phase ph-prep"><div class="phase-lbl">PREP</div><div class="phase-name" style="color:var(--blue)">JUL–AUG</div><div class="phase-sub">CN·COA·Algo</div></div>
+  <div class="phase ph-prep"><div class="phase-lbl">PREP</div><div class="phase-name" style="color:var(--blue)">SEP–OCT</div><div class="phase-sub">DBMS·CD·DL</div></div>
+  <div class="phase ph-prep"><div class="phase-lbl">PREP</div><div class="phase-name" style="color:var(--blue)">NOV</div><div class="phase-sub">DM·Maths·Apt</div></div>
+  <div class="phase ph-rev"><div class="phase-lbl">REVISION</div><div class="phase-name" style="color:var(--purple)">DEC–JAN</div><div class="phase-sub">All subjects</div></div>
+  <div class="phase ph-rev"><div class="phase-lbl">CONCEPTS</div><div class="phase-name" style="color:var(--purple)">FEB</div><div class="phase-sub">Final pass</div></div>
+  <div class="phase ph-gate"><div class="phase-lbl">EXAM</div><div class="phase-name" style="color:var(--red)">GATE</div><div class="phase-sub">Feb 2027</div></div>
+</div>
+
+<div class="top-nav">
+  <button class="tnav active" onclick="showSec('subjects',this)">[ SUBJECTS ]</button>
+  <button class="tnav" onclick="showSec('all',this)">[ ALL OVERVIEW ]</button>
+  <button class="tnav" onclick="showSec('monthly',this)">[ MONTH PLAN ]</button>
+</div>
+
+<div id="sec-subjects" class="sec active">
+  <div class="sub-tabs" id="sub-tabs"></div>
+  <div id="sub-detail"></div>
+</div>
+
+<div id="sec-all" class="sec">
+  <div class="ov-grid">
+    <div class="ov-box"><div class="ov-val" id="all-pct" style="color:var(--blue)">0%</div><div class="ov-lbl">TOTAL PROGRESS</div></div>
+    <div class="ov-box"><div class="ov-val" id="all-prep" style="color:var(--blue)">0%</div><div class="ov-lbl">PREPARATION</div></div>
+    <div class="ov-box"><div class="ov-val" id="all-pyq" style="color:var(--pink)">0%</div><div class="ov-lbl">PYQs DONE</div></div>
+    <div class="ov-box"><div class="ov-val" id="all-test" style="color:var(--green)">0%</div><div class="ov-lbl">TEST SERIES</div></div>
+  </div>
+  <div class="all-grid" id="all-grid"></div>
+</div>
+
+<div id="sec-monthly" class="sec">
+  <div class="month-grid" id="month-grid"></div>
+</div>
+
+<script>
+const PILLARS=['prep','revision','workbook','pyqs','test'];
+const PILLAR_LABELS={prep:'PREP',revision:'REVISION',workbook:'WORKBOOK',pyqs:"PYQ'S",test:'TEST SERIES'};
+const PILLAR_COLORS={prep:'var(--blue)',revision:'var(--purple)',workbook:'var(--amber)',pyqs:'var(--pink)',test:'var(--green)'};
+
+const SUBJECTS=[
+  {id:'prog',name:'Programming & DS',code:'PROG',color:'var(--green)',deadline:'Completed',phase:'done',tasks:{
+    prep:[{id:'prog-p1',txt:'C/C++ basics + Arrays, Linked Lists (Made Easy Book)'},{id:'prog-p2',txt:'Stacks, Queues, Trees, Graphs — Made Easy notes'},{id:'prog-p3',txt:'Sorting & Searching algorithms — full coverage'},{id:'prog-p4',txt:'Dynamic Programming concepts'},{id:'prog-p5',txt:'Hashing, Heap, Tries — Made Easy module'}],
+    revision:[{id:'prog-r1',txt:'Revise all DS formulas & time complexities'},{id:'prog-r2',txt:'Made Easy short notes — DS chapter'},{id:'prog-r3',txt:'Quick revision: Trees, Graphs traversal'},{id:'prog-r4',txt:'Revise sorting algorithms + proofs'},{id:'prog-r5',txt:'Final 1-page cheatsheet creation'}],
+    workbook:[{id:'prog-w1',txt:'Made Easy Workbook — Programming section'},{id:'prog-w2',txt:'DS workbook problems — Arrays & LL'},{id:'prog-w3',txt:'Tree & Graph problems in workbook'},{id:'prog-w4',txt:'DP + Sorting workbook exercises'},{id:'prog-w5',txt:'All starred problems re-attempt'}],
+    pyqs:[{id:'prog-q1',txt:'GATE CS PYQs 2010–2016 — DS & Prog'},{id:'prog-q2',txt:'GATE CS PYQs 2017–2020 — DS & Prog'},{id:'prog-q3',txt:'GATE CS PYQs 2021–2024 — DS & Prog'},{id:'prog-q4',txt:'GATE CS PYQs 2025 — DS & Prog'},{id:'prog-q5',txt:'Analyse wrong answers + topic-wise weak areas'}],
+    test:[{id:'prog-t1',txt:'Made Easy Test Series — Programming Test 1'},{id:'prog-t2',txt:'Made Easy Test Series — DS Test 1'},{id:'prog-t3',txt:'Subject mock — full DS + Programming'},{id:'prog-t4',txt:'Mixed subject test including DS'},{id:'prog-t5',txt:'Final grand test — all subjects'}]
+  }},
+  {id:'os',name:'Operating Systems',code:'OS',color:'var(--green)',deadline:'Completed',phase:'done',tasks:{
+    prep:[{id:'os-p1',txt:'Process management — scheduling algorithms (Made Easy)'},{id:'os-p2',txt:'Memory management — paging, segmentation, virtual memory'},{id:'os-p3',txt:"Deadlock — detection, prevention, avoidance (Banker's)"},{id:'os-p4',txt:'File systems + I/O management'},{id:'os-p5',txt:'Synchronization — semaphores, monitors, critical section'}],
+    revision:[{id:'os-r1',txt:'Revise scheduling algorithms with solved examples'},{id:'os-r2',txt:'Revise page replacement algorithms'},{id:'os-r3',txt:"Revise deadlock + Banker's algorithm"},{id:'os-r4',txt:'Made Easy short notes — OS chapter'},{id:'os-r5',txt:'Final cheatsheet — formulas + algorithms'}],
+    workbook:[{id:'os-w1',txt:'Made Easy Workbook — OS scheduling problems'},{id:'os-w2',txt:'Workbook — memory management numericals'},{id:'os-w3',txt:'Workbook — deadlock problems'},{id:'os-w4',txt:'Workbook — synchronization + semaphore problems'},{id:'os-w5',txt:'All starred OS workbook problems re-attempt'}],
+    pyqs:[{id:'os-q1',txt:'GATE OS PYQs 2010–2016'},{id:'os-q2',txt:'GATE OS PYQs 2017–2020'},{id:'os-q3',txt:'GATE OS PYQs 2021–2024'},{id:'os-q4',txt:'GATE OS PYQs 2025'},{id:'os-q5',txt:'Analyse & document weak OS topics'}],
+    test:[{id:'os-t1',txt:'Made Easy OS Subject Test 1'},{id:'os-t2',txt:'Made Easy OS Subject Test 2'},{id:'os-t3',txt:'Full OS mock test'},{id:'os-t4',txt:'Mixed test — OS + Networks'},{id:'os-t5',txt:'Final grand test — all subjects'}]
+  }},
+  {id:'toc',name:'Theory of Computation',code:'TOC',color:'var(--amber)',deadline:'Jun 2026',phase:'current',tasks:{
+    prep:[{id:'toc-p1',txt:'Finite Automata — DFA, NFA, ε-NFA (Made Easy)'},{id:'toc-p2',txt:'Regular languages — regex, pumping lemma'},{id:'toc-p3',txt:'Context-Free Grammars — PDA, CNF, GNF'},{id:'toc-p4',txt:'Turing Machines — variants, decidability'},{id:'toc-p5',txt:"Undecidability — halting problem, Rice's theorem"}],
+    revision:[{id:'toc-r1',txt:'Revise DFA/NFA minimization techniques'},{id:'toc-r2',txt:'Revise CFL & closure properties'},{id:'toc-r3',txt:'Revise TM constructions & decidability'},{id:'toc-r4',txt:'Made Easy short notes — TOC chapter'},{id:'toc-r5',txt:'Final 1-page TOC cheatsheet'}],
+    workbook:[{id:'toc-w1',txt:'Made Easy Workbook — FA & Regular languages'},{id:'toc-w2',txt:'Workbook — CFG & PDA problems'},{id:'toc-w3',txt:'Workbook — TM design problems'},{id:'toc-w4',txt:'Workbook — decidability questions'},{id:'toc-w5',txt:'All starred TOC workbook re-attempt'}],
+    pyqs:[{id:'toc-q1',txt:'GATE TOC PYQs 2010–2016'},{id:'toc-q2',txt:'GATE TOC PYQs 2017–2020'},{id:'toc-q3',txt:'GATE TOC PYQs 2021–2024'},{id:'toc-q4',txt:'GATE TOC PYQs 2025'},{id:'toc-q5',txt:'TOC weak areas analysis + concept fix'}],
+    test:[{id:'toc-t1',txt:'Made Easy TOC Subject Test 1'},{id:'toc-t2',txt:'Made Easy TOC Subject Test 2'},{id:'toc-t3',txt:'Full TOC mock test'},{id:'toc-t4',txt:'Mixed test — TOC + Compiler Design'},{id:'toc-t5',txt:'Final grand test — all subjects'}]
+  }},
+  {id:'cn',name:'Computer Networks',code:'CN',color:'var(--blue)',deadline:'Jul 2026',phase:'upcoming',tasks:{
+    prep:[{id:'cn-p1',txt:'OSI & TCP/IP model layers (Made Easy)'},{id:'cn-p2',txt:'Data link layer — framing, error control, MAC protocols'},{id:'cn-p3',txt:'Network layer — IP, routing algorithms, subnetting'},{id:'cn-p4',txt:'Transport layer — TCP, UDP, flow & congestion control'},{id:'cn-p5',txt:'Application layer — DNS, HTTP, FTP, SMTP'}],
+    revision:[{id:'cn-r1',txt:'Revise all protocol headers + fields'},{id:'cn-r2',txt:'Revise subnetting + CIDR calculations'},{id:'cn-r3',txt:'Revise routing algorithms (Dijkstra, Bellman-Ford)'},{id:'cn-r4',txt:'Made Easy short notes — CN chapter'},{id:'cn-r5',txt:'Final CN cheatsheet'}],
+    workbook:[{id:'cn-w1',txt:'Workbook — subnetting numericals'},{id:'cn-w2',txt:'Workbook — error detection problems'},{id:'cn-w3',txt:'Workbook — routing table problems'},{id:'cn-w4',txt:'Workbook — TCP numericals'},{id:'cn-w5',txt:'All starred CN workbook re-attempt'}],
+    pyqs:[{id:'cn-q1',txt:'GATE CN PYQs 2010–2016'},{id:'cn-q2',txt:'GATE CN PYQs 2017–2020'},{id:'cn-q3',txt:'GATE CN PYQs 2021–2024'},{id:'cn-q4',txt:'GATE CN PYQs 2025'},{id:'cn-q5',txt:'Analyse CN weak areas + document'}],
+    test:[{id:'cn-t1',txt:'Made Easy CN Subject Test 1'},{id:'cn-t2',txt:'Made Easy CN Subject Test 2'},{id:'cn-t3',txt:'Full CN mock test'},{id:'cn-t4',txt:'Mixed test — CN + OS'},{id:'cn-t5',txt:'Final grand test — all subjects'}]
+  }},
+  {id:'coa',name:'Computer Organization & Arch.',code:'COA',color:'var(--blue)',deadline:'Aug 2026',phase:'upcoming',tasks:{
+    prep:[{id:'coa-p1',txt:'Number systems + Boolean algebra (Made Easy)'},{id:'coa-p2',txt:'ALU design, data path, control unit'},{id:'coa-p3',txt:'Memory hierarchy — cache, virtual memory, mapping'},{id:'coa-p4',txt:'Instruction set architecture — RISC/CISC, pipelining'},{id:'coa-p5',txt:'I/O organization — interrupts, DMA, buses'}],
+    revision:[{id:'coa-r1',txt:'Revise cache mapping + replacement policies'},{id:'coa-r2',txt:'Revise pipeline hazards + solutions'},{id:'coa-r3',txt:'Revise ALU operations + number repr.'},{id:'coa-r4',txt:'Made Easy short notes — COA'},{id:'coa-r5',txt:'Final COA cheatsheet'}],
+    workbook:[{id:'coa-w1',txt:'Made Easy Workbook — Number systems + Boolean'},{id:'coa-w2',txt:'Workbook — cache numericals'},{id:'coa-w3',txt:'Workbook — pipeline problems'},{id:'coa-w4',txt:'Workbook — memory addressing'},{id:'coa-w5',txt:'All starred COA workbook re-attempt'}],
+    pyqs:[{id:'coa-q1',txt:'GATE COA PYQs 2010–2016'},{id:'coa-q2',txt:'GATE COA PYQs 2017–2020'},{id:'coa-q3',txt:'GATE COA PYQs 2021–2024'},{id:'coa-q4',txt:'GATE COA PYQs 2025'},{id:'coa-q5',txt:'COA weak topic analysis + fix'}],
+    test:[{id:'coa-t1',txt:'Made Easy COA Subject Test 1'},{id:'coa-t2',txt:'Made Easy COA Subject Test 2'},{id:'coa-t3',txt:'Full COA mock test'},{id:'coa-t4',txt:'Mixed test — COA + Digital Logic'},{id:'coa-t5',txt:'Final grand test — all subjects'}]
+  }},
+  {id:'algo',name:'Algorithms',code:'ALGO',color:'var(--blue)',deadline:'Aug 2026',phase:'upcoming',tasks:{
+    prep:[{id:'al-p1',txt:'Asymptotic analysis — Big O, recurrences (Made Easy)'},{id:'al-p2',txt:'Divide & Conquer — merge sort, quick sort, binary search'},{id:'al-p3',txt:"Greedy algorithms — Huffman, Kruskal, Prim"},{id:'al-p4',txt:'Dynamic Programming — LCS, LIS, knapsack, matrix chain'},{id:'al-p5',txt:'Graph algorithms — Dijkstra, Bellman-Ford, Floyd-Warshall'}],
+    revision:[{id:'al-r1',txt:'Revise all recurrence solving methods (Master theorem)'},{id:'al-r2',txt:'Revise DP problems + subproblems'},{id:'al-r3',txt:'Revise graph algorithm complexities'},{id:'al-r4',txt:'Made Easy short notes — Algorithms'},{id:'al-r5',txt:'Final algorithms cheatsheet'}],
+    workbook:[{id:'al-w1',txt:'Workbook — complexity analysis problems'},{id:'al-w2',txt:'Workbook — D&C + sorting problems'},{id:'al-w3',txt:'Workbook — DP numericals'},{id:'al-w4',txt:'Workbook — graph algorithm problems'},{id:'al-w5',txt:'All starred Algo workbook re-attempt'}],
+    pyqs:[{id:'al-q1',txt:'GATE Algo PYQs 2010–2016'},{id:'al-q2',txt:'GATE Algo PYQs 2017–2020'},{id:'al-q3',txt:'GATE Algo PYQs 2021–2024'},{id:'al-q4',txt:'GATE Algo PYQs 2025'},{id:'al-q5',txt:'Algorithm weak area analysis + re-solve'}],
+    test:[{id:'al-t1',txt:'Made Easy Algo Subject Test 1'},{id:'al-t2',txt:'Made Easy Algo Subject Test 2'},{id:'al-t3',txt:'Full Algorithms mock test'},{id:'al-t4',txt:'Mixed test — Algo + DS'},{id:'al-t5',txt:'Final grand test — all subjects'}]
+  }},
+  {id:'dbms',name:'DBMS',code:'DBMS',color:'var(--purple)',deadline:'Sep 2026',phase:'upcoming',tasks:{
+    prep:[{id:'db-p1',txt:'ER model, relational model, keys (Made Easy)'},{id:'db-p2',txt:'SQL — queries, joins, subqueries, aggregation'},{id:'db-p3',txt:'Normalization — 1NF to BCNF, functional dependencies'},{id:'db-p4',txt:'Transactions — ACID, concurrency control, serializability'},{id:'db-p5',txt:'Indexing — B/B+ trees, hashing'}],
+    revision:[{id:'db-r1',txt:'Revise normalization + FD closure'},{id:'db-r2',txt:'Revise SQL query writing'},{id:'db-r3',txt:'Revise transaction schedules + serializability'},{id:'db-r4',txt:'Made Easy short notes — DBMS'},{id:'db-r5',txt:'Final DBMS cheatsheet'}],
+    workbook:[{id:'db-w1',txt:'Workbook — ER + relational algebra'},{id:'db-w2',txt:'Workbook — SQL problems'},{id:'db-w3',txt:'Workbook — normalization problems'},{id:'db-w4',txt:'Workbook — transaction + indexing'},{id:'db-w5',txt:'All starred DBMS workbook re-attempt'}],
+    pyqs:[{id:'db-q1',txt:'GATE DBMS PYQs 2010–2016'},{id:'db-q2',txt:'GATE DBMS PYQs 2017–2020'},{id:'db-q3',txt:'GATE DBMS PYQs 2021–2024'},{id:'db-q4',txt:'GATE DBMS PYQs 2025'},{id:'db-q5',txt:'DBMS weak area analysis + fix'}],
+    test:[{id:'db-t1',txt:'Made Easy DBMS Subject Test 1'},{id:'db-t2',txt:'Made Easy DBMS Subject Test 2'},{id:'db-t3',txt:'Full DBMS mock test'},{id:'db-t4',txt:'Mixed test — DBMS + OS'},{id:'db-t5',txt:'Final grand test — all subjects'}]
+  }},
+  {id:'cd',name:'Compiler Design',code:'CD',color:'var(--purple)',deadline:'Oct 2026',phase:'upcoming',tasks:{
+    prep:[{id:'cd-p1',txt:'Lexical analysis — NFA/DFA, regular expressions (Made Easy)'},{id:'cd-p2',txt:'Parsing — LL(1), LR(0), SLR, LALR, CLR parsers'},{id:'cd-p3',txt:'Syntax-directed translation + SDT schemes'},{id:'cd-p4',txt:'Intermediate code generation — 3AC, DAG'},{id:'cd-p5',txt:'Code optimization + target code generation'}],
+    revision:[{id:'cd-r1',txt:'Revise parsing table construction'},{id:'cd-r2',txt:'Revise FIRST & FOLLOW computation'},{id:'cd-r3',txt:'Revise SDT + inherited/synthesized attributes'},{id:'cd-r4',txt:'Made Easy short notes — Compiler Design'},{id:'cd-r5',txt:'Final CD cheatsheet'}],
+    workbook:[{id:'cd-w1',txt:'Workbook — lexer + regex problems'},{id:'cd-w2',txt:'Workbook — parsing table problems'},{id:'cd-w3',txt:'Workbook — FIRST/FOLLOW computation'},{id:'cd-w4',txt:'Workbook — 3AC + optimization'},{id:'cd-w5',txt:'All starred CD workbook re-attempt'}],
+    pyqs:[{id:'cd-q1',txt:'GATE CD PYQs 2010–2016'},{id:'cd-q2',txt:'GATE CD PYQs 2017–2020'},{id:'cd-q3',txt:'GATE CD PYQs 2021–2024'},{id:'cd-q4',txt:'GATE CD PYQs 2025'},{id:'cd-q5',txt:'CD weak area analysis + document'}],
+    test:[{id:'cd-t1',txt:'Made Easy CD Subject Test 1'},{id:'cd-t2',txt:'Made Easy CD Subject Test 2'},{id:'cd-t3',txt:'Full Compiler Design mock test'},{id:'cd-t4',txt:'Mixed test — CD + TOC'},{id:'cd-t5',txt:'Final grand test — all subjects'}]
+  }},
+  {id:'dl',name:'Digital Logic',code:'DL',color:'var(--purple)',deadline:'Oct 2026',phase:'upcoming',tasks:{
+    prep:[{id:'dl-p1',txt:'Boolean algebra, logic gates, simplification (Made Easy)'},{id:'dl-p2',txt:'Combinational circuits — MUX, decoder, adder, comparator'},{id:'dl-p3',txt:"Karnaugh maps — 2/3/4 variable + don't cares"},{id:'dl-p4',txt:'Sequential circuits — flip flops, counters, registers'},{id:'dl-p5',txt:'Number systems + codes (BCD, Gray, Excess-3)'}],
+    revision:[{id:'dl-r1',txt:'Revise K-map simplification'},{id:'dl-r2',txt:'Revise combinational circuit design'},{id:'dl-r3',txt:'Revise flip flop state tables'},{id:'dl-r4',txt:'Made Easy short notes — Digital Logic'},{id:'dl-r5',txt:'Final DL cheatsheet'}],
+    workbook:[{id:'dl-w1',txt:'Workbook — Boolean + K-map problems'},{id:'dl-w2',txt:'Workbook — combinational circuit problems'},{id:'dl-w3',txt:'Workbook — sequential circuit problems'},{id:'dl-w4',txt:'Workbook — number system conversions'},{id:'dl-w5',txt:'All starred DL workbook re-attempt'}],
+    pyqs:[{id:'dl-q1',txt:'GATE DL PYQs 2010–2016'},{id:'dl-q2',txt:'GATE DL PYQs 2017–2020'},{id:'dl-q3',txt:'GATE DL PYQs 2021–2024'},{id:'dl-q4',txt:'GATE DL PYQs 2025'},{id:'dl-q5',txt:'DL weak area analysis + fix'}],
+    test:[{id:'dl-t1',txt:'Made Easy DL Subject Test 1'},{id:'dl-t2',txt:'Made Easy DL Subject Test 2'},{id:'dl-t3',txt:'Full Digital Logic mock test'},{id:'dl-t4',txt:'Mixed test — DL + COA'},{id:'dl-t5',txt:'Final grand test — all subjects'}]
+  }},
+  {id:'dm',name:'Discrete Mathematics',code:'DM',color:'var(--pink)',deadline:'Nov 2026',phase:'upcoming',tasks:{
+    prep:[{id:'dm-p1',txt:'Set theory, relations, functions (Made Easy)'},{id:'dm-p2',txt:'Graph theory — trees, paths, coloring, planarity'},{id:'dm-p3',txt:'Combinatorics — permutation, combination, pigeonhole'},{id:'dm-p4',txt:'Mathematical logic — propositional + predicate logic'},{id:'dm-p5',txt:'Group theory + recurrence relations'}],
+    revision:[{id:'dm-r1',txt:'Revise graph theory problems'},{id:'dm-r2',txt:'Revise combinatorics formulae'},{id:'dm-r3',txt:'Revise logic + truth tables'},{id:'dm-r4',txt:'Made Easy short notes — DM'},{id:'dm-r5',txt:'Final DM cheatsheet'}],
+    workbook:[{id:'dm-w1',txt:'Workbook — set theory + logic problems'},{id:'dm-w2',txt:'Workbook — graph theory problems'},{id:'dm-w3',txt:'Workbook — combinatorics problems'},{id:'dm-w4',txt:'Workbook — recurrence + group theory'},{id:'dm-w5',txt:'All starred DM workbook re-attempt'}],
+    pyqs:[{id:'dm-q1',txt:'GATE DM PYQs 2010–2016'},{id:'dm-q2',txt:'GATE DM PYQs 2017–2020'},{id:'dm-q3',txt:'GATE DM PYQs 2021–2024'},{id:'dm-q4',txt:'GATE DM PYQs 2025'},{id:'dm-q5',txt:'DM weak area analysis + concept fix'}],
+    test:[{id:'dm-t1',txt:'Made Easy DM Subject Test 1'},{id:'dm-t2',txt:'Made Easy DM Subject Test 2'},{id:'dm-t3',txt:'Full DM mock test'},{id:'dm-t4',txt:'Mixed test — DM + Algorithms'},{id:'dm-t5',txt:'Final grand test — all subjects'}]
+  }},
+  {id:'maths',name:'Linear Algebra & Calculus',code:'MATH',color:'var(--pink)',deadline:'Nov 2026',phase:'upcoming',tasks:{
+    prep:[{id:'ma-p1',txt:'Linear Algebra — matrices, eigenvalues, determinants (Made Easy)'},{id:'ma-p2',txt:'Calculus — limits, continuity, derivatives'},{id:'ma-p3',txt:'Integration + applications (area, volume)'},{id:'ma-p4',txt:'Probability + statistics — Bayes, distributions'},{id:'ma-p5',txt:'Differential equations basics'}],
+    revision:[{id:'ma-r1',txt:'Revise matrix operations + rank'},{id:'ma-r2',txt:'Revise eigenvalue problems'},{id:'ma-r3',txt:'Revise probability formulae'},{id:'ma-r4',txt:'Made Easy short notes — Engineering Maths'},{id:'ma-r5',txt:'Final Maths cheatsheet'}],
+    workbook:[{id:'ma-w1',txt:'Workbook — linear algebra numericals'},{id:'ma-w2',txt:'Workbook — calculus problems'},{id:'ma-w3',txt:'Workbook — probability problems'},{id:'ma-w4',txt:'Workbook — ODE + integration'},{id:'ma-w5',txt:'All starred Maths workbook re-attempt'}],
+    pyqs:[{id:'ma-q1',txt:'GATE Maths PYQs 2010–2016'},{id:'ma-q2',txt:'GATE Maths PYQs 2017–2020'},{id:'ma-q3',txt:'GATE Maths PYQs 2021–2024'},{id:'ma-q4',txt:'GATE Maths PYQs 2025'},{id:'ma-q5',txt:'Maths weak area analysis + fix'}],
+    test:[{id:'ma-t1',txt:'Made Easy Maths Subject Test 1'},{id:'ma-t2',txt:'Made Easy Maths Subject Test 2'},{id:'ma-t3',txt:'Full Engineering Maths mock test'},{id:'ma-t4',txt:'Mixed test — Maths + Aptitude'},{id:'ma-t5',txt:'Final grand test — all subjects'}]
+  }},
+  {id:'apt',name:'General Aptitude',code:'APT',color:'var(--green)',deadline:'Nov 2026',phase:'upcoming',tasks:{
+    prep:[{id:'ap-p1',txt:'Verbal ability — vocabulary, grammar, reading (Made Easy)'},{id:'ap-p2',txt:'Numerical ability — arithmetic, percentages, ratios'},{id:'ap-p3',txt:'Reasoning — logical, analytical, critical thinking'},{id:'ap-p4',txt:'Data interpretation — tables, graphs, charts'},{id:'ap-p5',txt:'Spatial aptitude + puzzle solving'}],
+    revision:[{id:'ap-r1',txt:'Revise verbal ability shortcuts'},{id:'ap-r2',txt:'Revise quantitative aptitude formulas'},{id:'ap-r3',txt:'Revise reasoning patterns'},{id:'ap-r4',txt:'Made Easy short notes — Aptitude'},{id:'ap-r5',txt:'Final Aptitude cheatsheet'}],
+    workbook:[{id:'ap-w1',txt:'Workbook — verbal ability exercises'},{id:'ap-w2',txt:'Workbook — quantitative problems (50 Qs)'},{id:'ap-w3',txt:'Workbook — reasoning problems'},{id:'ap-w4',txt:'Workbook — DI problems'},{id:'ap-w5',txt:'All starred Aptitude workbook re-attempt'}],
+    pyqs:[{id:'ap-q1',txt:'GATE Aptitude PYQs 2010–2016'},{id:'ap-q2',txt:'GATE Aptitude PYQs 2017–2020'},{id:'ap-q3',txt:'GATE Aptitude PYQs 2021–2024'},{id:'ap-q4',txt:'GATE Aptitude PYQs 2025'},{id:'ap-q5',txt:'Aptitude error log + weak area fix'}],
+    test:[{id:'ap-t1',txt:'Made Easy Aptitude Test 1'},{id:'ap-t2',txt:'Made Easy Aptitude Test 2'},{id:'ap-t3',txt:'Full Aptitude mock (15 Qs timed)'},{id:'ap-t4',txt:'Mixed full paper including Aptitude'},{id:'ap-t5',txt:'Final grand test — all subjects'}]
+  }},
+];
+
+const MONTHS=[
+  {month:'JUN 2026',phase:'PREPARATION',phaseColor:'var(--amber)',subjects:['Theory of Computation (TOC)'],focus:'Complete TOC by end of month. Daily: 2h prep + 30min PYQ practice. Finish DFA, NFA, CFL, TM, Undecidability.'},
+  {month:'JUL 2026',phase:'PREPARATION',phaseColor:'var(--blue)',subjects:['Computer Networks (CN)'],focus:'Full CN coverage. OSI model → IP → TCP → Application layer. Made Easy book + workbook exercises daily.'},
+  {month:'AUG 2026',phase:'PREPARATION',phaseColor:'var(--blue)',subjects:['COA','Algorithms'],focus:'Two subjects in parallel. COA: mornings. Algorithms: evenings. Target: both fully prepped by Aug 31.'},
+  {month:'SEP 2026',phase:'PREPARATION',phaseColor:'var(--blue)',subjects:['DBMS'],focus:'DBMS deep dive. SQL, normalization, transactions, indexing. Workbook problems daily. Start PYQs mid-Sep.'},
+  {month:'OCT 2026',phase:'PREPARATION',phaseColor:'var(--blue)',subjects:['Compiler Design','Digital Logic'],focus:'Compiler Design + Digital Logic in parallel. CD is TOC-adjacent so transition is smooth. All parsers + K-maps.'},
+  {month:'NOV 2026',phase:'PREPARATION COMPLETE',phaseColor:'var(--green)',subjects:['Discrete Maths','Lin. Algebra & Calculus','Aptitude'],focus:'Final prep push. Maths + DM + Aptitude. ALL subjects prepped by Nov 30. Begin revision pass from Nov 15.'},
+  {month:'DEC 2026',phase:'REVISION + TEST SERIES',phaseColor:'var(--purple)',subjects:['All 11 subjects'],focus:'Full revision cycle. Made Easy short notes for all subjects. 2 full mocks per week. Identify weak areas.'},
+  {month:'JAN 2027',phase:'REVISION + TEST SERIES',phaseColor:'var(--purple)',subjects:['All 11 subjects'],focus:'Intensive test series. Daily subject tests. 1 full mock every 3 days. PYQ revision. Fix weak topics urgently.'},
+  {month:'FEB 2027',phase:'FINAL REVISION + GATE',phaseColor:'var(--red)',subjects:['Final pass — all subjects'],focus:'Light revision only. Cheatsheets. No new topics. Mental preparation. REST before exam. GATE CS 2027 — Execute.'},
+];
+
+// ── PERSISTENT STORAGE ────────────────────────────────────────────
+const STORAGE_KEY = 'gate2027-checks';
+let checked = {};
+let saveTimer = null;
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('save-status');
+  el.textContent = msg;
+  el.className = 'save-status ' + (cls || '');
+}
+
+async function loadFromStorage() {
+  setStatus('● LOADING...');
+  try {
+    const result = await window.storage.get(STORAGE_KEY);
+    if (result && result.value) {
+      checked = JSON.parse(result.value);
+      setStatus('● SYNCED', 'saved');
+    } else {
+      // First time: mark prog & os as done
+      SUBJECTS.slice(0,2).forEach(sub => {
+        PILLARS.forEach(p => { sub.tasks[p].forEach(t => { checked[t.id] = true; }); });
+      });
+      await saveToStorage();
+      setStatus('● INITIALIZED', 'saved');
+    }
+  } catch(e) {
+    // Fallback to localStorage
+    try {
+      const s = localStorage.getItem(STORAGE_KEY);
+      if (s) {
+        checked = JSON.parse(s);
+      } else {
+        SUBJECTS.slice(0,2).forEach(sub => {
+          PILLARS.forEach(p => { sub.tasks[p].forEach(t => { checked[t.id] = true; }); });
+        });
+      }
+      setStatus('● LOCAL ONLY', '');
+    } catch(e2) {}
+  }
+  updateHeader();
+  renderTabs();
+  renderSubDetail();
+}
+
+async function saveToStorage() {
+  setStatus('● SAVING...', 'saving');
+  try {
+    await window.storage.set(STORAGE_KEY, JSON.stringify(checked));
+    // Also fallback to localStorage
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(checked)); } catch(e) {}
+    setStatus('● SAVED ✓', 'saved');
+    setTimeout(() => setStatus('● SYNCED', 'saved'), 1500);
+  } catch(e) {
+    // Fallback to localStorage only
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(checked)); } catch(e2) {}
+    setStatus('● LOCAL ONLY', '');
+  }
+}
+
+function debouncedSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  setStatus('● SAVING...', 'saving');
+  saveTimer = setTimeout(saveToStorage, 600);
+}
+
+// ── PROGRESS HELPERS ──────────────────────────────────────────────
+function getSubjectProgress(sub){
+  let total=0,done=0;
+  PILLARS.forEach(p=>{ sub.tasks[p].forEach(t=>{total++;if(checked[t.id])done++;}); });
+  return total?Math.round(done/total*100):0;
+}
+function getPillarProgress(sub,pillar){
+  const tasks=sub.tasks[pillar];
+  const done=tasks.filter(t=>checked[t.id]).length;
+  return Math.round(done/tasks.length*100);
+}
+function getQState(pct){
+  if(pct===100)return{cls:'q-collapsed',label:'⟨ψ⟩ COLLAPSED · DONE'};
+  if(pct>0)return{cls:'q-entangled',label:'⟨ψ⟩ ENTANGLED · IN PROGRESS'};
+  return{cls:'q-superposed',label:'⟨ψ⟩ SUPERPOSED · NOT STARTED'};
+}
+
+// ── RENDER TABS ───────────────────────────────────────────────────
+let activeSub='prog';
+function renderTabs(){
+  const el=document.getElementById('sub-tabs');
+  el.innerHTML=SUBJECTS.map(s=>{
+    const pct=getSubjectProgress(s);
+    const col=pct===100?'var(--green)':pct>0?'var(--blue)':'var(--muted)';
+    return `<div class="stab ${s.id===activeSub?'active':''}" onclick="selectSub('${s.id}')">
+      <div class="qball" style="background:${col}"></div>${s.code}
+    </div>`;
+  }).join('');
+}
+function selectSub(id){activeSub=id;renderTabs();renderSubDetail();}
+
+// ── RENDER SUBJECT DETAIL ─────────────────────────────────────────
+function renderSubDetail(){
+  const sub=SUBJECTS.find(s=>s.id===activeSub);if(!sub)return;
+  const pct=getSubjectProgress(sub);
+  const qs=getQState(pct);
+  const fillColor=pct===100?'var(--green)':pct>50?'var(--blue)':'var(--amber)';
+  let html=`<div class="sub-card">
+    <div class="sub-header">
+      <div>
+        <div class="sub-name">${sub.name}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:1px">TARGET: ${sub.deadline}</div>
+      </div>
+      <div class="sub-meta">
+        <div class="q-indicator ${qs.cls}"><div class="q-dot"></div><span style="display:none" class="q-lbl-full">${qs.label}</span></div>
+        ${sub.phase==='done'?`<span class="deadline-tag" style="color:var(--green);border-color:rgba(0,255,157,.3);background:rgba(0,255,157,.07)">✓ COMPLETE</span>`:
+          sub.phase==='current'?`<span class="deadline-tag">⚡ CURRENT</span>`:
+          `<span class="deadline-tag" style="color:var(--muted);border-color:var(--border)">UPCOMING</span>`}
+      </div>
+    </div>
+    <div class="sub-prog-wrap">
+      <div class="prog-labels"><span>OVERALL PROGRESS</span><span style="color:${fillColor}">${pct}%</span></div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+    </div>
+    <div class="pillars">`;
+  PILLARS.forEach(p=>{
+    const pp=getPillarProgress(sub,p);
+    const tasks=sub.tasks[p];
+    html+=`<div class="pillar p-${p}">
+      <div class="pillar-head">
+        <div class="pillar-name">${PILLAR_LABELS[p]}</div>
+        <div class="pillar-pct">${pp}%</div>
+      </div>
+      <div class="prog-bar" style="margin-bottom:8px"><div class="prog-fill" style="width:${pp}%;background:${PILLAR_COLORS[p]}"></div></div>
+      ${tasks.map(t=>`<div class="task-row" onclick="toggleTask('${t.id}')">
+        <div class="task-cb ${checked[t.id]?'done':''}">${checked[t.id]?'✓':''}</div>
+        <div class="task-txt ${checked[t.id]?'done':''}">${t.txt}</div>
+      </div>`).join('')}
+    </div>`;
+  });
+  html+=`</div></div>`;
+  document.getElementById('sub-detail').innerHTML=html;
+}
+
+function toggleTask(id){
+  checked[id]=!checked[id];
+  debouncedSave();
+  updateHeader();
+  renderSubDetail();
+  renderTabs();
+  if(document.getElementById('sec-all').classList.contains('active'))renderAll();
+}
+
+// ── RENDER ALL OVERVIEW ───────────────────────────────────────────
+function renderAll(){
+  let totalDone=0,totalTasks=0,prepDone=0,prepTotal=0,pyqDone=0,pyqTotal=0,testDone=0,testTotal=0;
+  SUBJECTS.forEach(s=>{
+    PILLARS.forEach(p=>{
+      const tasks=s.tasks[p];
+      const d=tasks.filter(t=>checked[t.id]).length;
+      totalDone+=d;totalTasks+=tasks.length;
+      if(p==='prep'){prepDone+=d;prepTotal+=tasks.length;}
+      if(p==='pyqs'){pyqDone+=d;pyqTotal+=tasks.length;}
+      if(p==='test'){testDone+=d;testTotal+=tasks.length;}
+    });
+  });
+  const pct=totalTasks?Math.round(totalDone/totalTasks*100):0;
+  document.getElementById('all-pct').textContent=pct+'%';
+  document.getElementById('all-prep').textContent=prepTotal?Math.round(prepDone/prepTotal*100)+'%':'0%';
+  document.getElementById('all-pyq').textContent=pyqTotal?Math.round(pyqDone/pyqTotal*100)+'%':'0%';
+  document.getElementById('all-test').textContent=testTotal?Math.round(testDone/testTotal*100)+'%':'0%';
+  document.getElementById('all-grid').innerHTML=SUBJECTS.map(s=>{
+    const sp=getSubjectProgress(s);
+    const fillC=sp===100?'var(--green)':sp>0?'var(--blue)':'var(--muted)';
+    const pPcts=PILLARS.map(p=>getPillarProgress(s,p));
+    const qs=getQState(sp);
+    return `<div class="mini-sub-card" onclick="selectAndShowSub('${s.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div class="ms-name">${s.name}</div>
+        <div class="q-indicator ${qs.cls}" style="padding:2px 7px;font-size:9px"><div class="q-dot"></div></div>
+      </div>
+      <div class="mini-pillars">
+        ${PILLARS.map((p,i)=>`<div class="mini-p" style="background:${pPcts[i]>0?PILLAR_COLORS[p]:'var(--dim)'};opacity:${pPcts[i]/100*0.7+0.3}" title="${PILLAR_LABELS[p]}: ${pPcts[i]}%"></div>`).join('')}
+      </div>
+      <div class="prog-bar" style="margin:5px 0"><div class="prog-fill" style="width:${sp}%;background:${fillC}"></div></div>
+      <div class="mini-prog">
+        <span>Deadline: ${s.deadline}</span>
+        <span style="color:${fillC};font-weight:700">${sp}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectAndShowSub(id){
+  activeSub=id;
+  showSec('subjects',null);
+  document.querySelectorAll('.tnav').forEach((b,i)=>{b.classList.toggle('active',i===0);});
+  renderTabs();renderSubDetail();
+}
+
+// ── MONTHLY PLAN ──────────────────────────────────────────────────
+function renderMonthly(){
+  document.getElementById('month-grid').innerHTML=MONTHS.map(m=>`
+    <div class="month-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;margin-bottom:6px">
+        <div class="month-name" style="color:${m.phaseColor}">${m.month}</div>
+        <span class="month-phase" style="color:${m.phaseColor};background:${m.phaseColor}18;border:1px solid ${m.phaseColor}33">${m.phase}</span>
+      </div>
+      <div class="month-subjects">${m.subjects.map(s=>`<div class="ms-row"><div class="ms-dot" style="background:${m.phaseColor}"></div><span>${s}</span></div>`).join('')}</div>
+      <div class="month-focus">${m.focus}</div>
+    </div>`).join('');
+}
+
+// ── HEADER STATS ──────────────────────────────────────────────────
+function updateHeader(){
+  let total=0,done=0,subsDone=0;
+  const gate=new Date('2027-02-01');
+  const now=new Date();
+  const days=Math.round((gate-now)/(1000*60*60*24));
+  SUBJECTS.forEach(s=>{
+    PILLARS.forEach(p=>{s.tasks[p].forEach(t=>{total++;if(checked[t.id])done++;});});
+    if(getSubjectProgress(s)===100)subsDone++;
+  });
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('ov-total').textContent=pct+'%';
+  document.getElementById('ov-subj').textContent=subsDone+'/11';
+  document.getElementById('ov-days').textContent=days>0?days:'EXAM!';
+}
+
+// ── SECTION NAV ───────────────────────────────────────────────────
+function showSec(name,btn){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  if(btn){document.querySelectorAll('.tnav').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+  if(name==='subjects'){renderTabs();renderSubDetail();}
+  if(name==='all')renderAll();
+  if(name==='monthly')renderMonthly();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+loadFromStorage();
+</script>
+</body>
+</html>

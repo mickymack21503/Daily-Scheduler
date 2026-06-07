@@ -1,0 +1,643 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --q-bg:#03050f;--q-surface:#080d1a;--q-card:#0c1225;--q-border:#1a2a4a;
+    --q-blue:#00c8ff;--q-purple:#8b5cf6;--q-green:#00ff9d;--q-amber:#f59e0b;
+    --q-red:#ff4d6d;--q-text:#e2e8f0;--q-muted:#64748b;--q-dim:#334155;
+    --font:'Courier New',monospace;
+  }
+  body{background:var(--q-bg);color:var(--q-text);font-family:var(--font);font-size:13px;min-height:100vh;overflow-x:hidden}
+  canvas#bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.35}
+  #app{position:relative;z-index:1;padding:12px;max-width:900px;margin:0 auto}
+
+  /* Header */
+  .header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--q-surface);border:1px solid var(--q-border);border-radius:10px;margin-bottom:12px}
+  .logo{display:flex;align-items:center;gap:8px}
+  .logo-icon{width:32px;height:32px;border:1px solid var(--q-blue);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--q-blue);font-size:16px;position:relative;overflow:hidden}
+  .logo-icon::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,200,255,.15),transparent)}
+  .logo-text{font-size:14px;font-weight:700;letter-spacing:2px;color:var(--q-blue)}
+  .logo-sub{font-size:9px;color:var(--q-muted);letter-spacing:3px}
+  .header-right{display:flex;align-items:center;gap:12px}
+  .date-display{font-size:11px;color:var(--q-muted);text-align:right}
+  .date-display span{display:block;color:var(--q-blue);font-size:13px}
+  .coherence{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--q-green)}
+  .coherence-dot{width:6px;height:6px;border-radius:50%;background:var(--q-green);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,255,157,.4)}50%{opacity:.7;box-shadow:0 0 0 4px rgba(0,255,157,.0)}}
+
+  /* Nav */
+  .nav{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
+  .nav-btn{padding:7px 14px;background:var(--q-surface);border:1px solid var(--q-border);border-radius:6px;color:var(--q-muted);cursor:pointer;font-family:var(--font);font-size:11px;letter-spacing:1px;white-space:nowrap;transition:all .2s}
+  .nav-btn:hover{border-color:var(--q-blue);color:var(--q-blue)}
+  .nav-btn.active{background:rgba(0,200,255,.1);border-color:var(--q-blue);color:var(--q-blue)}
+
+  /* Grid */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .col-span-2{grid-column:span 2}
+  @media(max-width:600px){.grid-2,.grid-3{grid-template-columns:1fr}.col-span-2{grid-column:span 1}}
+
+  /* Cards */
+  .card{background:var(--q-card);border:1px solid var(--q-border);border-radius:10px;padding:14px;margin-bottom:10px}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .card-title{font-size:10px;letter-spacing:2px;color:var(--q-blue);font-weight:700}
+  .card-badge{font-size:9px;padding:3px 8px;border-radius:20px;letter-spacing:1px}
+  .badge-green{background:rgba(0,255,157,.1);color:var(--q-green);border:1px solid rgba(0,255,157,.2)}
+  .badge-amber{background:rgba(245,158,11,.1);color:var(--q-amber);border:1px solid rgba(245,158,11,.2)}
+  .badge-purple{background:rgba(139,92,246,.1);color:var(--q-purple);border:1px solid rgba(139,92,246,.2)}
+  .badge-blue{background:rgba(0,200,255,.1);color:var(--q-blue);border:1px solid rgba(0,200,255,.2)}
+
+  /* Mission Briefing */
+  .briefing-box{background:rgba(0,0,0,.4);border:1px solid rgba(0,200,255,.15);border-radius:8px;padding:14px;font-size:12px;line-height:1.8;color:var(--q-text);position:relative;min-height:80px}
+  .briefing-box .cursor{display:inline-block;width:7px;height:13px;background:var(--q-blue);animation:blink .8s infinite;vertical-align:middle;margin-left:2px}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+  .briefing-label{font-size:9px;letter-spacing:2px;color:var(--q-muted);margin-bottom:6px}
+  .gen-btn{font-size:10px;padding:5px 10px;background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.3);color:var(--q-blue);border-radius:5px;cursor:pointer;font-family:var(--font);letter-spacing:1px;transition:all .2s}
+  .gen-btn:hover{background:rgba(0,200,255,.2)}
+
+  /* Time blocks */
+  .time-block{display:flex;align-items:stretch;gap:8px;margin-bottom:6px}
+  .time-label{font-size:10px;color:var(--q-muted);min-width:52px;padding-top:8px;letter-spacing:.5px}
+  .time-card{flex:1;background:rgba(0,0,0,.3);border:1px solid var(--q-border);border-radius:6px;padding:7px 10px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+  .time-card:hover{border-color:var(--q-blue)}
+  .time-card.done{opacity:.6}
+  .time-card.done .tc-title{text-decoration:line-through;color:var(--q-muted)}
+  .time-card .tc-cat{font-size:9px;letter-spacing:1px;margin-bottom:3px}
+  .time-card .tc-title{font-size:12px;color:var(--q-text)}
+  .time-card .tc-bar{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px 0 0 2px}
+  .cat-study{color:var(--q-blue)} .bar-study{background:var(--q-blue)}
+  .cat-health{color:var(--q-green)} .bar-health{background:var(--q-green)}
+  .cat-research{color:var(--q-purple)} .bar-research{background:var(--q-purple)}
+  .cat-exam{color:var(--q-amber)} .bar-exam{background:var(--q-amber)}
+  .cat-network{color:#f472b6} .bar-network{background:#f472b6}
+  .cat-review{color:var(--q-muted)} .bar-review{background:var(--q-muted)}
+  .tc-check{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.4;transition:opacity .2s}
+  .time-card:hover .tc-check{opacity:1}
+  .add-block-btn{width:100%;padding:7px;background:transparent;border:1px dashed var(--q-dim);border-radius:6px;color:var(--q-muted);cursor:pointer;font-family:var(--font);font-size:11px;letter-spacing:1px;transition:all .2s;margin-bottom:6px}
+  .add-block-btn:hover{border-color:var(--q-blue);color:var(--q-blue)}
+
+  /* Habit tracker */
+  .habit-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .habit-name{font-size:12px;flex:1;color:var(--q-text)}
+  .habit-dots{display:flex;gap:4px}
+  .h-dot{width:18px;height:18px;border-radius:4px;border:1px solid var(--q-border);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;font-size:8px}
+  .h-dot.done{background:rgba(0,255,157,.2);border-color:var(--q-green);color:var(--q-green)}
+  .h-dot.today{border-color:var(--q-blue)}
+  .habit-streak{font-size:10px;color:var(--q-amber);min-width:30px;text-align:right}
+
+  /* Goals */
+  .goal-item{background:rgba(0,0,0,.3);border:1px solid var(--q-border);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:all .2s}
+  .goal-item:hover{border-color:var(--q-purple)}
+  .goal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .goal-title{font-size:12px;color:var(--q-text)}
+  .goal-tag{font-size:9px;padding:2px 7px;border-radius:10px;letter-spacing:1px}
+  .tag-long{background:rgba(139,92,246,.15);color:var(--q-purple);border:1px solid rgba(139,92,246,.3)}
+  .tag-short{background:rgba(0,200,255,.12);color:var(--q-blue);border:1px solid rgba(0,200,255,.25)}
+  .goal-progress{height:4px;background:var(--q-dim);border-radius:2px;overflow:hidden;margin-bottom:4px}
+  .goal-bar{height:100%;border-radius:2px;transition:width .5s}
+  .goal-meta{font-size:10px;color:var(--q-muted);display:flex;justify-content:space-between}
+
+  /* Analytics */
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  .stat-box{background:rgba(0,0,0,.4);border:1px solid var(--q-border);border-radius:8px;padding:10px;text-align:center}
+  .stat-val{font-size:22px;font-weight:700;margin-bottom:2px}
+  .stat-lbl{font-size:9px;letter-spacing:1px;color:var(--q-muted)}
+  .heatmap{display:flex;gap:3px;flex-wrap:wrap;margin-top:8px}
+  .hm-cell{width:12px;height:12px;border-radius:2px;background:var(--q-dim)}
+  .hm-1{background:rgba(0,200,255,.2)} .hm-2{background:rgba(0,200,255,.5)} .hm-3{background:rgba(0,200,255,.85)}
+
+  /* Quote ticker */
+  .ticker{background:rgba(0,0,0,.5);border-top:1px solid var(--q-border);border-bottom:1px solid var(--q-border);padding:8px 16px;overflow:hidden;margin-bottom:10px;position:relative}
+  .ticker-inner{white-space:nowrap;animation:scroll 30s linear infinite;display:inline-block;color:var(--q-muted);font-size:11px}
+  @keyframes scroll{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+
+  /* Modals */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+  .modal-overlay.open{opacity:1;pointer-events:all}
+  .modal{background:var(--q-card);border:1px solid var(--q-blue);border-radius:12px;padding:20px;width:90%;max-width:420px;max-height:80vh;overflow-y:auto}
+  .modal h3{font-size:12px;letter-spacing:2px;color:var(--q-blue);margin-bottom:14px}
+  .modal input,.modal select,.modal textarea{width:100%;background:rgba(0,0,0,.5);border:1px solid var(--q-border);border-radius:6px;padding:8px 10px;color:var(--q-text);font-family:var(--font);font-size:12px;margin-bottom:10px;outline:none}
+  .modal input:focus,.modal select:focus,.modal textarea:focus{border-color:var(--q-blue)}
+  .modal select option{background:var(--q-bg)}
+  .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+  .btn-save{padding:7px 16px;background:rgba(0,200,255,.15);border:1px solid var(--q-blue);color:var(--q-blue);border-radius:6px;cursor:pointer;font-family:var(--font);font-size:11px;letter-spacing:1px;transition:all .2s}
+  .btn-save:hover{background:rgba(0,200,255,.25)}
+  .btn-cancel{padding:7px 16px;background:transparent;border:1px solid var(--q-border);color:var(--q-muted);border-radius:6px;cursor:pointer;font-family:var(--font);font-size:11px;letter-spacing:1px}
+
+  /* Priority tags */
+  .p-critical{color:var(--q-red);font-size:9px;letter-spacing:1px}
+  .p-important{color:var(--q-amber);font-size:9px;letter-spacing:1px}
+  .p-optional{color:var(--q-muted);font-size:9px;letter-spacing:1px}
+
+  /* Scrollbar */
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--q-dim);border-radius:2px}
+
+  /* Section */
+  .section{display:none}.section.active{display:block}
+
+  /* Progress ring */
+  .ring-wrap{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
+  svg.ring{transform:rotate(-90deg)}
+  .ring-pct{font-size:18px;font-weight:700;color:var(--q-blue)}
+  .ring-lbl{font-size:9px;letter-spacing:1px;color:var(--q-muted)}
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<div id="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">⟨ψ⟩</div>
+      <div>
+        <div class="logo-text">QNTM-OS</div>
+        <div class="logo-sub">MISSION CONTROL</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="coherence"><div class="coherence-dot"></div><span id="coherence-lbl">COHERENT</span></div>
+      <div class="date-display">
+        <span id="hdr-date">SUN 07 JUN 2026</span>
+        <span id="hdr-time" style="font-size:11px;color:var(--q-muted)">--:--:--</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div class="ticker">
+    <span class="ticker-inner">
+      ⟨ψ⟩ "If you think you understand quantum mechanics, you don't understand quantum mechanics." — Feynman &nbsp;|&nbsp;
+      ⟨ψ⟩ "An experiment is a question which science poses to Nature." — Max Planck &nbsp;|&nbsp;
+      ⟨ψ⟩ Post-Quantum Cryptography: Shor's algorithm threatens RSA — your preparation is the shield. &nbsp;|&nbsp;
+      ⟨ψ⟩ DRDO · ISRO · BARC — the quantum frontier awaits. Stay entangled with your goals. &nbsp;|&nbsp;
+      ⟨ψ⟩ "The more precisely you measure position, the less precisely you can know momentum." — Heisenberg
+    </span>
+  </div>
+
+  <!-- Nav -->
+  <div class="nav">
+    <button class="nav-btn active" onclick="showSection('dashboard')">[ DASHBOARD ]</button>
+    <button class="nav-btn" onclick="showSection('schedule')">[ SCHEDULE ]</button>
+    <button class="nav-btn" onclick="showSection('habits')">[ HABITS ]</button>
+    <button class="nav-btn" onclick="showSection('goals')">[ GOALS ]</button>
+    <button class="nav-btn" onclick="showSection('analytics')">[ ANALYTICS ]</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="sec-dashboard" class="section active">
+    <div class="grid-2">
+      <!-- Briefing -->
+      <div class="card col-span-2">
+        <div class="card-head">
+          <div class="card-title">[ MISSION BRIEFING — AI GENERATED ]</div>
+          <button class="gen-btn" onclick="generateBriefing()">⟳ GENERATE</button>
+        </div>
+        <div class="briefing-label">TODAY'S QUANTUM DIRECTIVE</div>
+        <div class="briefing-box" id="briefing-text">
+          Press GENERATE to receive your personalized mission briefing for today.<span class="cursor"></span>
+        </div>
+      </div>
+      <!-- Progress ring -->
+      <div class="card" style="text-align:center">
+        <div class="card-head"><div class="card-title">[ DAILY PROGRESS ]</div><span class="card-badge badge-green" id="day-pct-badge">0%</span></div>
+        <div class="ring-wrap">
+          <svg class="ring" width="100" height="100" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="var(--q-dim)" stroke-width="8"/>
+            <circle id="ring-circle" cx="50" cy="50" r="40" fill="none" stroke="var(--q-blue)" stroke-width="8"
+              stroke-dasharray="251" stroke-dashoffset="251" stroke-linecap="round" style="transition:stroke-dashoffset .6s"/>
+          </svg>
+          <div class="ring-pct" id="ring-pct">0%</div>
+          <div class="ring-lbl">TASKS COMPLETE</div>
+        </div>
+      </div>
+      <!-- Today summary -->
+      <div class="card">
+        <div class="card-head"><div class="card-title">[ QUANTUM STATE ]</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--q-muted)">Tasks completed</span><span id="qs-done" style="color:var(--q-green)">0 / 0</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--q-muted)">Habits tracked</span><span id="qs-habits" style="color:var(--q-amber)">0 / 0</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--q-muted)">Active goals</span><span id="qs-goals" style="color:var(--q-purple)">0</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--q-muted)">Streak</span><span id="qs-streak" style="color:var(--q-blue)">-- days</span></div>
+          <div style="margin-top:4px;height:1px;background:var(--q-border)"></div>
+          <div style="font-size:10px;color:var(--q-muted);text-align:center;letter-spacing:1px" id="momentum-lbl">MOMENTUM: INITIALIZING...</div>
+        </div>
+      </div>
+    </div>
+    <!-- Today's upcoming -->
+    <div class="card">
+      <div class="card-head"><div class="card-title">[ NEXT WAVE — TODAY'S SCHEDULE ]</div><span class="card-badge badge-blue" id="next-wave-badge">--</span></div>
+      <div id="next-wave-list"></div>
+    </div>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div id="sec-schedule" class="section">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">[ TIME-LOCKED SCHEDULE ]</div>
+        <button class="gen-btn" onclick="openAddBlock()">+ ADD BLOCK</button>
+      </div>
+      <div id="schedule-list"></div>
+    </div>
+  </div>
+
+  <!-- HABITS -->
+  <div id="sec-habits" class="section">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">[ HABIT MATRIX — LAST 7 DAYS ]</div>
+        <button class="gen-btn" onclick="openAddHabit()">+ ADD HABIT</button>
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:10px;padding-left:120px">
+        <span id="habit-day-labels" style="display:flex;gap:4px;font-size:9px;color:var(--q-muted)"></span>
+      </div>
+      <div id="habit-list"></div>
+    </div>
+  </div>
+
+  <!-- GOALS -->
+  <div id="sec-goals" class="section">
+    <div class="card">
+      <div class="card-head"><div class="card-title">[ LONG-TERM ORBITAL GOALS ]</div><button class="gen-btn" onclick="openAddGoal('long')">+ ADD</button></div>
+      <div id="long-goals"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">[ SHORT-TERM MISSION GOALS ]</div><button class="gen-btn" onclick="openAddGoal('short')">+ ADD</button></div>
+      <div id="short-goals"></div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div id="sec-analytics" class="section">
+    <div class="card">
+      <div class="card-head"><div class="card-title">[ PERFORMANCE ANALYTICS ]</div><span class="card-badge badge-purple">LIVE</span></div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val" id="an-completion" style="color:var(--q-blue)">0%</div><div class="stat-lbl">DAILY COMPLETION</div></div>
+        <div class="stat-box"><div class="stat-val" id="an-streak" style="color:var(--q-amber)">0</div><div class="stat-lbl">DAY STREAK</div></div>
+        <div class="stat-box"><div class="stat-val" id="an-momentum" style="color:var(--q-green)">0</div><div class="stat-lbl">MOMENTUM SCORE</div></div>
+      </div>
+      <div class="card-title" style="margin-bottom:8px">ACTIVITY HEATMAP (42 DAYS)</div>
+      <div class="heatmap" id="heatmap"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">[ GOAL WAVEFUNCTION COLLAPSE ]</div></div>
+      <div id="goal-analytics"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Block Modal -->
+<div class="modal-overlay" id="modal-block">
+  <div class="modal">
+    <h3>[ ADD TIME BLOCK ]</h3>
+    <input type="time" id="b-time" value="06:00">
+    <select id="b-cat">
+      <option value="study">Study / Theory</option>
+      <option value="research">Research Papers</option>
+      <option value="exam">GATE / JEST / NET Prep</option>
+      <option value="health">Health / Exercise</option>
+      <option value="network">Networking / LinkedIn</option>
+      <option value="review">Review / Revision</option>
+    </select>
+    <input type="text" id="b-title" placeholder="Task description...">
+    <select id="b-priority">
+      <option value="critical">CRITICAL</option>
+      <option value="important">IMPORTANT</option>
+      <option value="optional">OPTIONAL</option>
+    </select>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-block')">CANCEL</button>
+      <button class="btn-save" onclick="saveBlock()">SAVE BLOCK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Habit Modal -->
+<div class="modal-overlay" id="modal-habit">
+  <div class="modal">
+    <h3>[ ADD HABIT ]</h3>
+    <input type="text" id="h-name" placeholder="Habit name (e.g. 1hr Quantum Study)">
+    <select id="h-icon">
+      <option value="◎">◎ Study</option>
+      <option value="⬡">⬡ Exercise</option>
+      <option value="◈">◈ Research</option>
+      <option value="◉">◉ Practice</option>
+      <option value="▣">▣ Review</option>
+    </select>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-habit')">CANCEL</button>
+      <button class="btn-save" onclick="saveHabit()">SAVE HABIT</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Goal Modal -->
+<div class="modal-overlay" id="modal-goal">
+  <div class="modal">
+    <h3>[ ADD GOAL ]</h3>
+    <input type="hidden" id="g-type">
+    <input type="text" id="g-title" placeholder="Goal title...">
+    <input type="text" id="g-deadline" placeholder="Target date (e.g. Dec 2026)">
+    <input type="number" id="g-progress" min="0" max="100" value="0" placeholder="Current progress (0-100)">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-goal')">CANCEL</button>
+      <button class="btn-save" onclick="saveGoal()">SAVE GOAL</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+let state = {
+  blocks: [
+    {id:1,time:'05:30',cat:'health',title:'Morning run + meditation',priority:'important',done:false},
+    {id:2,time:'06:30',cat:'study',title:'Quantum Mechanics — Griffiths Ch.4',priority:'critical',done:false},
+    {id:3,time:'08:30',cat:'exam',title:'GATE Physics PYQs (2 hours)',priority:'critical',done:false},
+    {id:4,time:'10:30',cat:'research',title:'arXiv papers — Quantum Comm.',priority:'important',done:false},
+    {id:5,time:'12:30',cat:'health',title:'Lunch + rest',priority:'optional',done:false},
+    {id:6,time:'13:30',cat:'exam',title:'JEST Mock Test — Modern Physics',priority:'critical',done:false},
+    {id:7,time:'15:30',cat:'study',title:'Post-Quantum Cryptography — NIST PQC',priority:'important',done:false},
+    {id:8,time:'17:30',cat:'health',title:'Exercise / walk',priority:'important',done:false},
+    {id:9,time:'19:00',cat:'research',title:'Read + annotate 1 research paper',priority:'important',done:false},
+    {id:10,time:'20:30',cat:'network',title:'LinkedIn + academic networking',priority:'optional',done:false},
+    {id:11,time:'21:30',cat:'review',title:'Daily review + tomorrow plan',priority:'critical',done:false},
+  ],
+  habits: [
+    {id:1,name:'Quantum study (2h+)',icon:'◎',done:[1,1,1,0,1,1,0],streak:4},
+    {id:2,name:'Physical exercise',icon:'⬡',done:[1,1,0,1,1,1,0],streak:3},
+    {id:3,name:'Read 1 paper',icon:'◈',done:[0,1,1,1,0,1,0],streak:2},
+    {id:4,name:'GATE / JEST practice',icon:'◉',done:[1,1,1,1,1,0,0],streak:5},
+    {id:5,name:'Evening review',icon:'▣',done:[1,0,1,0,1,1,0],streak:2},
+  ],
+  goals: {
+    long:[
+      {id:1,title:'Scientist at ISRO / DRDO / BARC',deadline:'2030',progress:8},
+      {id:2,title:'Complete PhD in Quantum at IIT',deadline:'2030',progress:5},
+      {id:3,title:'Publish 2 research papers',deadline:'2028',progress:3},
+    ],
+    short:[
+      {id:1,title:'Clear GATE Physics 2027',deadline:'Feb 2027',progress:15},
+      {id:2,title:'Clear JEST 2027',deadline:'Feb 2027',progress:12},
+      {id:3,title:'PhD admission at IIT',deadline:'Jul 2026',progress:70},
+      {id:4,title:'Master Qiskit + quantum circuits',deadline:'Sep 2026',progress:30},
+      {id:5,title:'Complete NIST PQC study',deadline:'Aug 2026',progress:20},
+    ]
+  },
+  streak:7,
+  nextId:100
+};
+
+// Try load from storage
+try{const s=localStorage.getItem('qntm-state');if(s)state=JSON.parse(s);}catch(e){}
+
+function save(){try{localStorage.setItem('qntm-state',JSON.stringify(state));}catch(e){}}
+
+// ── CANVAS BG ──────────────────────────────────────────────────
+const canvas=document.getElementById('bg'),ctx=canvas.getContext('2d');
+let W,H,particles=[];
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;particles=[];for(let i=0;i<60;i++)particles.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,a:Math.random()});}
+resize();window.addEventListener('resize',resize);
+function drawBG(){ctx.clearRect(0,0,W,H);particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(0,200,255,${p.a*.4})`;ctx.fill();});
+particles.forEach((p,i)=>{particles.slice(i+1).forEach(q=>{const d=Math.hypot(p.x-q.x,p.y-q.y);if(d<120){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle=`rgba(0,200,255,${(1-d/120)*.12})`;ctx.lineWidth=.5;ctx.stroke();}});});
+requestAnimationFrame(drawBG);}
+drawBG();
+
+// ── CLOCK ──────────────────────────────────────────────────────
+function updateClock(){
+  const now=new Date();
+  document.getElementById('hdr-time').textContent=now.toLocaleTimeString('en-GB');
+  const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('hdr-date').textContent=`${days[now.getDay()]} ${String(now.getDate()).padStart(2,'0')} ${months[now.getMonth()]} ${now.getFullYear()}`;
+}
+setInterval(updateClock,1000);updateClock();
+
+// ── SECTION NAV ────────────────────────────────────────────────
+function showSection(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  if(name==='dashboard')renderDashboard();
+  if(name==='schedule')renderSchedule();
+  if(name==='habits')renderHabits();
+  if(name==='goals')renderGoals();
+  if(name==='analytics')renderAnalytics();
+}
+
+// ── SCHEDULE ──────────────────────────────────────────────────
+function renderSchedule(){
+  const el=document.getElementById('schedule-list');
+  const sorted=[...state.blocks].sort((a,b)=>a.time.localeCompare(b.time));
+  el.innerHTML=sorted.map(b=>`
+    <div class="time-block">
+      <div class="time-label">${b.time}</div>
+      <div class="time-card ${b.done?'done':''}" onclick="toggleBlock(${b.id})">
+        <div class="tc-bar bar-${b.cat}"></div>
+        <div style="padding-left:6px">
+          <div class="tc-cat cat-${b.cat}">${b.cat.toUpperCase()} · <span class="p-${b.priority}">${b.priority.toUpperCase()}</span></div>
+          <div class="tc-title">${b.title}</div>
+        </div>
+        <div class="tc-check">${b.done?'✓':'○'}</div>
+      </div>
+    </div>
+  `).join('')+`<button class="add-block-btn" onclick="openAddBlock()">+ ADD NEW TIME BLOCK</button>`;
+}
+
+function toggleBlock(id){
+  const b=state.blocks.find(x=>x.id===id);if(b){b.done=!b.done;save();renderSchedule();updateDashboardStats();}
+}
+
+// ── HABITS ────────────────────────────────────────────────────
+function renderHabits(){
+  const days=['S','M','T','W','T','F','T'];
+  const today=new Date().getDay();
+  const labels=[];for(let i=6;i>=0;i--){const d=(today-i+7)%7;labels.push(days[d]);}
+  document.getElementById('habit-day-labels').innerHTML=labels.map(d=>`<span style="width:18px;text-align:center">${d}</span>`).join('');
+  const el=document.getElementById('habit-list');
+  el.innerHTML=state.habits.map(h=>`
+    <div class="habit-row">
+      <div class="habit-name">${h.icon} ${h.name}</div>
+      <div class="habit-dots">
+        ${h.done.map((d,i)=>`<div class="h-dot ${d?'done':''} ${i===6?'today':''}" onclick="toggleHabit(${h.id},${i})" title="${i===6?'Today':''}">
+          ${d?'✓':''}
+        </div>`).join('')}
+      </div>
+      <div class="habit-streak">🔥${h.streak}</div>
+    </div>
+  `).join('')+`<button class="add-block-btn" onclick="openAddHabit()">+ ADD NEW HABIT</button>`;
+}
+
+function toggleHabit(id,day){
+  const h=state.habits.find(x=>x.id===id);if(!h)return;
+  h.done[day]=h.done[day]?0:1;
+  // recalc streak
+  let s=0;for(let i=6;i>=0;i--){if(h.done[i])s++;else break;}
+  h.streak=s;save();renderHabits();updateDashboardStats();
+}
+
+// ── GOALS ─────────────────────────────────────────────────────
+const goalColors={
+  0:'#8b5cf6',1:'#00c8ff',2:'#00ff9d',3:'#f59e0b',4:'#f472b6'
+};
+function renderGoals(){
+  renderGoalList('long-goals',state.goals.long,'long');
+  renderGoalList('short-goals',state.goals.short,'short');
+}
+function renderGoalList(elId,list,type){
+  const el=document.getElementById(elId);
+  if(!list.length){el.innerHTML=`<div style="color:var(--q-muted);font-size:11px;text-align:center;padding:12px">No goals yet. Add your first goal.</div>`;return;}
+  el.innerHTML=list.map((g,i)=>`
+    <div class="goal-item" onclick="editGoalProgress(${g.id},'${type}')">
+      <div class="goal-header">
+        <div class="goal-title">${g.title}</div>
+        <span class="goal-tag tag-${type}">${type.toUpperCase()}</span>
+      </div>
+      <div class="goal-progress"><div class="goal-bar" style="width:${g.progress}%;background:${goalColors[i%5]}"></div></div>
+      <div class="goal-meta"><span>${g.progress}% complete</span><span>Target: ${g.deadline}</span></div>
+    </div>
+  `).join('');
+}
+
+function editGoalProgress(id,type){
+  const g=state.goals[type].find(x=>x.id===id);if(!g)return;
+  const v=prompt(`Update progress for:\n"${g.title}"\n\nEnter % (0-100):`,g.progress);
+  if(v===null)return;const n=Math.min(100,Math.max(0,parseInt(v)||0));
+  g.progress=n;save();renderGoals();
+}
+
+// ── ANALYTICS ────────────────────────────────────────────────
+function renderAnalytics(){
+  const total=state.blocks.length,done=state.blocks.filter(b=>b.done).length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('an-completion').textContent=pct+'%';
+  document.getElementById('an-streak').textContent=state.streak;
+  const momentum=Math.min(100,pct+state.streak*3);
+  document.getElementById('an-momentum').textContent=momentum;
+  // heatmap
+  const hm=document.getElementById('heatmap');
+  hm.innerHTML=Array.from({length:42},(_,i)=>{
+    const v=Math.floor(Math.random()*4);
+    return `<div class="hm-cell hm-${v}" title="Day ${i+1}"></div>`;
+  }).join('');
+  // goal analytics
+  const ga=document.getElementById('goal-analytics');
+  const all=[...state.goals.long,...state.goals.short];
+  ga.innerHTML=all.map(g=>`
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+        <span style="color:var(--q-text)">${g.title}</span>
+        <span style="color:var(--q-muted)">${g.progress}%</span>
+      </div>
+      <div class="goal-progress"><div class="goal-bar" style="width:${g.progress}%;background:var(--q-blue)"></div></div>
+    </div>
+  `).join('');
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────
+function updateDashboardStats(){
+  const total=state.blocks.length,done=state.blocks.filter(b=>b.done).length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('ring-pct').textContent=pct+'%';
+  document.getElementById('day-pct-badge').textContent=pct+'%';
+  const offset=251-(251*pct/100);
+  document.getElementById('ring-circle').style.strokeDashoffset=offset;
+  document.getElementById('qs-done').textContent=`${done} / ${total}`;
+  const htotal=state.habits.length,hdone=state.habits.filter(h=>h.done[6]).length;
+  document.getElementById('qs-habits').textContent=`${hdone} / ${htotal}`;
+  document.getElementById('qs-goals').textContent=state.goals.long.length+state.goals.short.length;
+  document.getElementById('qs-streak').textContent=state.streak+' days';
+  const momentum=Math.min(100,pct+state.streak*3);
+  const mLabel=momentum>80?'⟨ψ⟩ SUPERPOSITION: MAXIMUM COHERENCE':momentum>50?'⟨ψ⟩ ENTANGLED: HIGH MOMENTUM':'⟨ψ⟩ GROUNDING STATE: BUILD MOMENTUM';
+  document.getElementById('momentum-lbl').textContent=mLabel;
+  // next wave
+  const upcoming=state.blocks.filter(b=>!b.done).slice(0,3);
+  document.getElementById('next-wave-badge').textContent=`${upcoming.length} UPCOMING`;
+  document.getElementById('next-wave-list').innerHTML=upcoming.length?upcoming.map(b=>`
+    <div class="time-block">
+      <div class="time-label">${b.time}</div>
+      <div class="time-card" onclick="toggleBlock(${b.id})">
+        <div class="tc-bar bar-${b.cat}"></div>
+        <div style="padding-left:6px">
+          <div class="tc-cat cat-${b.cat}">${b.cat.toUpperCase()} · <span class="p-${b.priority}">${b.priority.toUpperCase()}</span></div>
+          <div class="tc-title">${b.title}</div>
+        </div>
+        <div class="tc-check">○</div>
+      </div>
+    </div>
+  `).join(''):`<div style="color:var(--q-green);font-size:12px;text-align:center;padding:12px;letter-spacing:1px">⟨ψ⟩ ALL TASKS COLLAPSED TO DONE STATE</div>`;
+}
+
+function renderDashboard(){updateDashboardStats();}
+
+// ── MISSION BRIEFING ─────────────────────────────────────────
+const briefings=[
+  `OPERATIVE: Your wavefunction is superposed across ${()=>state.blocks.length} critical tasks today. Priority collapse sequence: GATE/JEST preparation first — quantum states don't stay coherent forever.\n\nFocus window: 06:30–10:30 for deep study. Decoherence risk is high after 14:00 — protect that block.\n\nRemember: ISRO/DRDO scientists are built in mornings like this one. Entangle with your goals.`,
+  `QUANTUM DIRECTIVE: Post-Quantum Cryptography demands your attention today. NIST's PQC standards (CRYSTALS-Kyber, CRYSTALS-Dilithium) are your gateway to DRDO relevance.\n\nYour mission: 2h deep study + 1 paper annotation. The Q-Day is coming — you want to be the one who secured the protocol.\n\nStreak preservation critical. Maintain coherence.`,
+  `MISSION BRIEF: IIT PhD applications demand proof of quantum fluency. Today: solve 5 GATE problems, read 1 paper, document insights.\n\nBACK-CHANNEL INTEL: Candidates who demonstrate Qiskit + theoretical depth get shortlisted faster. Consider hands-on quantum circuit simulation today.\n\nYou are ${Math.round(Math.random()*30+10)}% closer to your orbital goal than yesterday. Push the wavefunction.`,
+];
+
+function generateBriefing(){
+  const el=document.getElementById('briefing-text');
+  el.innerHTML='<span class="cursor"></span>';
+  const text=briefings[Math.floor(Math.random()*briefings.length)];
+  let i=0;
+  const interval=setInterval(()=>{
+    if(i>=text.length){clearInterval(interval);el.innerHTML=text.replace(/\n/g,'<br>');return;}
+    el.innerHTML=text.slice(0,++i).replace(/\n/g,'<br>')+'<span class="cursor"></span>';
+  },18);
+}
+
+// ── MODALS ────────────────────────────────────────────────────
+function openAddBlock(){document.getElementById('modal-block').classList.add('open')}
+function openAddHabit(){document.getElementById('modal-habit').classList.add('open')}
+function openAddGoal(type){document.getElementById('g-type').value=type;document.getElementById('modal-goal').classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+function saveBlock(){
+  const time=document.getElementById('b-time').value;
+  const cat=document.getElementById('b-cat').value;
+  const title=document.getElementById('b-title').value.trim();
+  const priority=document.getElementById('b-priority').value;
+  if(!title)return;
+  state.blocks.push({id:state.nextId++,time,cat,title,priority,done:false});
+  save();closeModal('modal-block');renderSchedule();document.getElementById('b-title').value='';
+}
+
+function saveHabit(){
+  const name=document.getElementById('h-name').value.trim();
+  const icon=document.getElementById('h-icon').value;
+  if(!name)return;
+  state.habits.push({id:state.nextId++,name,icon,done:[0,0,0,0,0,0,0],streak:0});
+  save();closeModal('modal-habit');renderHabits();document.getElementById('h-name').value='';
+}
+
+function saveGoal(){
+  const type=document.getElementById('g-type').value;
+  const title=document.getElementById('g-title').value.trim();
+  const deadline=document.getElementById('g-deadline').value.trim();
+  const progress=parseInt(document.getElementById('g-progress').value)||0;
+  if(!title)return;
+  state.goals[type].push({id:state.nextId++,title,deadline:deadline||'TBD',progress});
+  save();closeModal('modal-goal');renderGoals();
+  ['g-title','g-deadline'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('g-progress').value=0;
+}
+
+// click outside modal to close
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');});
+});
+
+// ── INIT ─────────────────────────────────────────────────────
+renderDashboard();
+</script>
+</body>
+</html>
